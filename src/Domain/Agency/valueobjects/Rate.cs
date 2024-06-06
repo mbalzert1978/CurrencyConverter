@@ -2,10 +2,10 @@ namespace Domain;
 
 public class Rate : ValueObject
 {
-    protected Currency CurrencyFrom { get; private init; }
-    protected Currency CurrencyTo { get; private init; }
-    protected Money Amount { get; private init; }
-    protected DateTime DateTime { get; private init; }
+    public Currency CurrencyFrom { get; private init; }
+    public Currency CurrencyTo { get; private init; }
+    public Money Amount { get; private init; }
+    public DateTime DateTime { get; private init; }
     private const string ParsingErrorMessage =
         "DateTime is not in a valid ISO 8601 format.";
 
