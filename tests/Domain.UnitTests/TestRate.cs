@@ -66,10 +66,8 @@ public class RateTests
     }
 
     [Fact]
-    public void RateWhenInvertRateShouldReturnInvertedRate() => Assert.Equal(Rate.FromStr("USD", "EUR", "2", "2023-10-01T00:00:00")
-                                                                                 .Invert(), Rate.FromStr("EUR",
-                                                                                                         "USD",
-                                                                                                         "0.50000000",
-                                                                                                         "2023-10-01T00:00:00"));
+    public void RateWhenInvertRateShouldReturnInvertedRate() =>
+        Assert.Equal(Rate.FromStr("USD", "EUR", "2", "2023-10-01T00:00:00")
+                         .Invert(), Rate.FromStr("EUR", "USD", "0.50000000", "2023-10-01T00:00:00"));
 
 }
