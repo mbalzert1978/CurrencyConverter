@@ -16,7 +16,7 @@ public class MoneyTests
 
     [Theory]
     [MemberData(nameof(ValidMoneyAmounts))]
-    public void MoneyFromStrWhenValidValueShouldReturnExpectedResults(string amount,
+    public void MoneyFromStrWhenValidShouldReturnExpectedResults(string amount,
                                                                       decimal expectedAmount) =>
         // Act & Assert
         Assert.True(Money.FromStr(amount).Equals(Money.FromDecimal(expectedAmount)));
@@ -34,7 +34,7 @@ public class MoneyTests
 
     [Theory]
     [MemberData(nameof(InvalidMoneyAmounts))]
-    public void CreateWhenMoneyIsInvalidShouldRaiseException(string code,
+    public void MoneyFromStrWhenInvalidShouldRaiseException(string code,
                                                                           string expectedErrorMessage)
     {
         // Act & Assert
@@ -42,5 +42,38 @@ public class MoneyTests
         Assert.Equal(expectedErrorMessage, exception.Description);
     }
 
+    public static IEnumerable<object[]> LargeAmountData =>
+        [
+            [decimal.MaxValue / 2, 1, decimal.MaxValue / 2],
+            [decimal.MaxValue / 2, 0.5m, decimal.MaxValue / 4],
+            [decimal.MaxValue / 2, 0.00000001m, decimal.MaxValue / 2 * 0.00000001m]
+        ];
+
+    [Theory]
+    [MemberData(nameof(LargeAmountData))]
+    public void MoneyMultiplyWhenLargeAmountsShouldReturnExpectedResults(decimal left,
+                                                                         decimal right,
+                                                                         decimal expected) =>
+        // Arrange & Act
+        Assert.Equal(Money.FromDecimal(expected), Money.FromDecimal(left)
+                                                       .Multiply(Money.FromDecimal(right)));
+
+    public static IEnumerable<object[]> LargeAmountErrorData =>
+    [
+        [decimal.MaxValue / 2, -2, "Money amount cannot be negative."],
+        [decimal.MaxValue / 2, 0, "Money amount cannot be negative."],
+        [decimal.MaxValue / 2, 0.0000000001m, "Money amount cannot be negative."]
+    ];
+    [Theory]
+    [MemberData(nameof(LargeAmountErrorData))]
+    public void MoneyMultiplyWhenInvalidAmountsShouldRaiseException(decimal left,
+                                                                decimal right,
+                                                                string expectedErrorMessage)
+    {
+        // Act & Assert
+        var exception = Assert.Throws<Error>(() => Money.FromDecimal(left)
+                                                        .Multiply(Money.FromDecimal(right)));
+        Assert.Equal(expectedErrorMessage, exception.Description);
+    }
 
 }

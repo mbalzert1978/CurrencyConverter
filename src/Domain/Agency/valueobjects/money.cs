@@ -12,6 +12,9 @@ public class Money : ValueObject
     private const string NotNegativeErrorMessage =
         "Money amount cannot be negative.";
 
+    private const string OverflowExceptionMessage =
+        "Money amount could not be parsed. Overflow occurred.";
+
     private Money(decimal amount)
     {
         Amount = amount;
@@ -72,5 +75,24 @@ public class Money : ValueObject
     public override IEnumerable<object> GetAtomicValues()
     {
         yield return Amount;
+    }
+
+    internal Money Multiply(Money amount)
+    {
+        try
+        {
+            return FromDecimal(Math.Round(Amount * amount.Amount, 8));
+        }
+        catch (OverflowException)
+        {
+
+            throw new Error("400", OverflowExceptionMessage);
+        }
+
+    }
+
+    internal Money Invert()
+    {
+        return FromDecimal(Math.Round(1 / Amount, 8));
     }
 }
