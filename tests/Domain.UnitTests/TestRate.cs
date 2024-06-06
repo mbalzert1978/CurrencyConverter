@@ -49,4 +49,27 @@ public class RateTests
         var exception = Assert.Throws<Error>(() => Rate.FromStr(currencyFrom, currencyTo, rate, date));
         Assert.Equal(expectedErrorMessage, exception.Description);
     }
+    public static IEnumerable<object[]> RateTestData =>
+    [
+        ["2", "0.5", "1"],
+        ["4", "2", "8"],
+        ["1.00000000", "0.25", "0.25"],
+    ];
+
+    [Theory]
+    [MemberData(nameof(RateTestData))]
+    public void RateWhenMultiplyShouldReturnExpectedResults(string left, string right, string expected)
+    {
+        Assert.Equal(Rate.FromStr("USD", "EUR", left, "2023-10-01T00:00:00")
+                         .Multiply(Rate.FromStr("JPY", "USD", right, "2023-10-01T00:00:00")),
+                            Rate.FromStr("JPY", "EUR", expected, "2023-10-01T00:00:00"));
+    }
+
+    [Fact]
+    public void RateWhenInvertRateShouldReturnInvertedRate() => Assert.Equal(Rate.FromStr("USD", "EUR", "2", "2023-10-01T00:00:00")
+                                                                                 .Invert(), Rate.FromStr("EUR",
+                                                                                                         "USD",
+                                                                                                         "0.50000000",
+                                                                                                         "2023-10-01T00:00:00"));
+
 }

@@ -42,6 +42,26 @@ public class Rate : ValueObject
 
     }
 
+    public Rate Multiply(Rate other)
+    {
+        return new(
+            other.CurrencyFrom,
+            CurrencyTo,
+            Amount.Multiply(other.Amount),
+            DateTime
+        );
+    }
+
+    public Rate Invert()
+    {
+        return new(
+            CurrencyTo,
+            CurrencyFrom,
+            Amount.Invert(),
+            DateTime
+        );
+    }
+
 
 
     public override IEnumerable<object> GetAtomicValues()
