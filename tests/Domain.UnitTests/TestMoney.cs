@@ -19,7 +19,7 @@ public class MoneyTests
     public void MoneyFromStrWhenValidShouldReturnExpectedResults(string amount,
                                                                       decimal expectedAmount) =>
         // Act & Assert
-        Assert.True(Money.FromStr(amount).Equals(Money.FromDecimal(expectedAmount)));
+        Assert.True(Money.TryFromStr(amount).Equals(Money.FromDecimal(expectedAmount)));
 
 
     public static IEnumerable<object[]> InvalidMoneyAmounts =>
@@ -38,7 +38,7 @@ public class MoneyTests
                                                                           string expectedErrorMessage)
     {
         // Act & Assert
-        var exception = Assert.Throws<Error>(() => Money.FromStr(code));
+        var exception = Assert.Throws<Error>(() => Money.TryFromStr(code));
         Assert.Equal(expectedErrorMessage, exception.Description);
     }
 

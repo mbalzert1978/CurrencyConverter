@@ -31,8 +31,8 @@ public class AgencyTests
         var rates = agency.GetRates();
 
         // Assert
-        Assert.Contains(Rate.FromStr("USD", "EUR", "0.85", "2023-10-01T00:00:00"), rates);
-        Assert.Contains(Rate.FromStr("USD", "JPY", "110.00", "2023-10-01T00:00:00"), rates);
+        Assert.Contains(Rate.TryFromStr("USD", "EUR", "0.85", "2023-10-01T00:00:00"), rates);
+        Assert.Contains(Rate.TryFromStr("USD", "JPY", "110.00", "2023-10-01T00:00:00"), rates);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class AgencyTests
 
         Rate rate = agency.GetRate(currencyFrom, currencyTo, date);
 
-        Assert.Equal(Money.FromStr(expectedRate), rate.Amount);
+        Assert.Equal(Money.TryFromStr(expectedRate), rate.Amount);
     }
 }
 

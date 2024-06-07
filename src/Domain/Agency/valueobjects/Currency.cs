@@ -10,31 +10,42 @@ public class Currency : ValueObject
     private const string InvalidLengthErrorMessage =
         "Currency code must be exactly 3 characters long.";
 
-    private Currency(string code)
+    internal Currency(string code)
     {
         Code = code;
     }
 
 
-    public static Currency FromStr(string code)
+    public static bool TryFromStr(string code, out Currency? currency, out Error? error)
     {
         if (string.IsNullOrWhiteSpace(code))
-            throw new Error(
+        {
+            currency = null;
+            error = new Error(
                 "400", EmptyErrorMessage);
+            return false;
+
+        }
 
         if (code.Length != 3)
         {
-            throw new Error(
+            currency = null;
+            error = new Error(
                 "400", InvalidLengthErrorMessage);
+            return false;
         }
 
         if (code.Any(c => !char.IsLetter(c)))
         {
-            throw new Error(
+            currency = null;
+            error = new Error(
                 "400", InvalidCharactersErrorMessage);
+            return false;
         }
 
-        return new Currency(code.ToUpperInvariant());
+        currency = new Currency(code.ToUpperInvariant());
+        error = null;
+        return true;
 
     }
 

@@ -5,7 +5,7 @@ public class Agency : AggregateRoot
     protected string Address { get; set; }
     protected string Country { get; set; }
     protected Currency BaseCurrency { get; set; }
-    protected HashSet<Rate> Rates { get; set; } = [];
+    protected readonly HashSet<Rate> Rates = [];
 
     private Agency(Guid id, string name, string address, string country, Currency baseCurrency) : base(id)
     {
@@ -18,12 +18,12 @@ public class Agency : AggregateRoot
     public static Agency Create(string name, string address, string country, string code)
     {
         Guid id = Guid.NewGuid();
-        return new(id, name, address, country, Currency.FromStr(code));
+        return new(id, name, address, country, Currency.TryFromStr(code));
     }
 
     internal void AddRate(string currencyFrom, string currencyTo, string amount, string dateTime)
     {
-        Rate rate = Rate.FromStr(currencyFrom, currencyTo, amount, dateTime);
+        Rate rate = Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime);
         Rates.Add(rate);
     }
 
@@ -43,8 +43,8 @@ public class Agency : AggregateRoot
 
         try
         {
-            from = Currency.FromStr(currencyFrom);
-            to = Currency.FromStr(currencyTo);
+            from = Currency.TryFromStr(currencyFrom);
+            to = Currency.TryFromStr(currencyTo);
         }
         catch (Exception)
         {

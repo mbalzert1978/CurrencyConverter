@@ -20,12 +20,12 @@ public class RateTests
                                                                         DateTime expectedDate)
     {
         // Act
-        var rateInstance = Rate.FromStr(expectedCurrencyFrom, expectedCurrencyTo, expectedRate, expectedDate.ToString());
+        var rateInstance = Rate.TryFromStr(expectedCurrencyFrom, expectedCurrencyTo, expectedRate, expectedDate.ToString());
 
         // Assert
-        Assert.Equal(Currency.FromStr(expectedCurrencyFrom), rateInstance.GetAtomicValues().First());
-        Assert.Equal(Currency.FromStr(expectedCurrencyTo), rateInstance.GetAtomicValues().Skip(1).First());
-        Assert.Equal(Money.FromStr(expectedRate), rateInstance.GetAtomicValues().Skip(2).First());
+        Assert.Equal(Currency.TryFromStr(expectedCurrencyFrom), rateInstance.GetAtomicValues().First());
+        Assert.Equal(Currency.TryFromStr(expectedCurrencyTo), rateInstance.GetAtomicValues().Skip(1).First());
+        Assert.Equal(Money.TryFromStr(expectedRate), rateInstance.GetAtomicValues().Skip(2).First());
         Assert.Equal(expectedDate, rateInstance.GetAtomicValues().Skip(3).First());
     }
 
@@ -46,7 +46,7 @@ public class RateTests
         string currencyFrom, string currencyTo, string rate, string date, string expectedErrorMessage)
     {
         // Act & Assert
-        var exception = Assert.Throws<Error>(() => Rate.FromStr(currencyFrom, currencyTo, rate, date));
+        var exception = Assert.Throws<Error>(() => Rate.TryFromStr(currencyFrom, currencyTo, rate, date));
         Assert.Equal(expectedErrorMessage, exception.Description);
     }
     public static IEnumerable<object[]> RateTestData =>
@@ -60,14 +60,14 @@ public class RateTests
     [MemberData(nameof(RateTestData))]
     public void RateWhenMultiplyShouldReturnExpectedResults(string left, string right, string expected)
     {
-        Assert.Equal(Rate.FromStr("USD", "EUR", left, "2023-10-01T00:00:00")
-                         .Multiply(Rate.FromStr("JPY", "USD", right, "2023-10-01T00:00:00")),
-                            Rate.FromStr("JPY", "EUR", expected, "2023-10-01T00:00:00"));
+        Assert.Equal(Rate.TryFromStr("USD", "EUR", left, "2023-10-01T00:00:00")
+                         .Multiply(Rate.TryFromStr("JPY", "USD", right, "2023-10-01T00:00:00")),
+                            Rate.TryFromStr("JPY", "EUR", expected, "2023-10-01T00:00:00"));
     }
 
     [Fact]
     public void RateWhenInvertRateShouldReturnInvertedRate() =>
-        Assert.Equal(Rate.FromStr("USD", "EUR", "2", "2023-10-01T00:00:00")
-                         .Invert(), Rate.FromStr("EUR", "USD", "0.50000000", "2023-10-01T00:00:00"));
+        Assert.Equal(Rate.TryFromStr("USD", "EUR", "2", "2023-10-01T00:00:00")
+                         .Invert(), Rate.TryFromStr("EUR", "USD", "0.50000000", "2023-10-01T00:00:00"));
 
 }

@@ -18,48 +18,64 @@ public class Rate : ValueObject
     }
 
 
-    public static Rate FromStr(string currencyFrom, string currencyTo, string amount, string dateTime)
+    public static bool TryFromStr(string currencyFrom, string currencyTo, string amount, string dateTime, out Rate? rate, out Error? error)
     {
-        DateTime parsed;
-        try
+        if (!DateTime.TryParse(dateTime, out DateTime parsed))
         {
-            parsed = DateTime.Parse(dateTime)
-                .AddSeconds(-DateTime.Parse(dateTime).Second)
-                .AddMilliseconds(-DateTime.Parse(dateTime).Millisecond);
+            rate = null;
+            error = new Error("400", ParsingErrorMessage);
+            return false;
         }
-        catch (Exception)
+        parsed = parsed.AddSeconds(-parsed.Second)
+               .AddMilliseconds(-parsed.Millisecond);
+        if (!Currency.TryFromStr(currencyFrom, out Currency? from, out Error? fromError))
         {
-
-            throw new Error("400", ParsingErrorMessage);
+            rate = null;
+            error = fromError;
+            return false;
         }
-
-        return new(
-            Currency.FromStr(currencyFrom),
-            Currency.FromStr(currencyTo),
-            Money.FromStr(amount),
-            parsed
-        );
+        if (!Currency.TryFromStr(currencyTo, out Currency? to, out Error? toError))
+        {
+            rate = null;
+            error = toError;
+            return false;
+        }
+        if (!Money.TryFromStr(amount, out Money? money, out Error? moneyError))
+        {
+            rate = null;
+            error = moneyError;
+            return false;
+        }
+        rate = new Rate(from, to, money, parsed);
+        error = null;
+        return true;
 
     }
 
-    public Rate Multiply(Rate other)
+    public bool Multiply(Rate other, out Rate? rate, out Error? error)
     {
-        return new(
-            other.CurrencyFrom,
-            CurrencyTo,
-            Amount.Multiply(other.Amount),
-            DateTime
-        );
+        if (!Amount.Multiply(other.Amount, out Money? money, out Error? moneyError))
+        {
+            rate = null;
+            error = moneyError;
+            return false;
+        }
+        rate = new Rate(other.CurrencyFrom, CurrencyTo, money, DateTime);
+        error = null;
+        return true;
     }
 
-    public Rate Invert()
+    public bool Invert(out Rate? rate, out Error? error)
     {
-        return new(
-            CurrencyTo,
-            CurrencyFrom,
-            Amount.Invert(),
-            DateTime
-        );
+        if (!Amount.Invert(out Money? money, out Error? moneyError))
+        {
+            rate = null;
+            error = moneyError;
+            return false;
+        }
+        rate = new Rate(CurrencyTo, CurrencyFrom, money, DateTime);
+        error = null;
+        return true;
     }
 
 

@@ -21,54 +21,63 @@ public class Money : ValueObject
     }
 
 
-    public static Money FromStr(string amount)
+    public static bool TryFromStr(string amount, out Money? money, out Error? error)
     {
         if (string.IsNullOrWhiteSpace(amount))
-            throw new Error(
-                "400", EmptyErrorMessage);
+        {
+            money = null;
+            error = new Error(
+            "400", EmptyErrorMessage);
+            return false;
+        }
 
         amount = amount.Replace(",", ".");
 
         if (amount.Any(c => !char.IsAsciiDigit(c) && c != '.'))
         {
-            throw new Error(
+            money = null;
+            error = new Error(
                 "400", InvalidCharactersErrorMessage);
         }
 
         if (amount.Count(dot => dot == '.') > 1)
         {
-            throw new Error(
+            error = new Error(
                 "400", ParsingErrorMessage);
         }
 
-        decimal parsed;
-
-        try
+        if (!decimal.TryParse(amount, System.Globalization.CultureInfo.InvariantCulture, out decimal parsed))
         {
-            parsed = decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture);
-        }
-        catch (Exception)
-        {
-
-            throw new Error("400", ParsingErrorMessage);
+            money = null;
+            error = new Error(
+                "400", OverflowExceptionMessage);
+            return false;
         }
 
         if (parsed <= 0)
         {
-            throw new Error("400", NotNegativeErrorMessage);
+            money = null;
+            error = new Error(
+                "400", NotNegativeErrorMessage);
+            return false;
         }
 
-        return new Money(Math.Round(parsed, 8));
+        money = new Money(Math.Round(parsed, 8));
+        error = null;
+        return true;
 
     }
-    internal static Money FromDecimal(decimal amount)
+    internal static bool TryFromDecimal(decimal amount, out Money? money, out Error? error)
     {
         if (amount <= 0)
         {
-            throw new Error("400", NotNegativeErrorMessage);
+            money = null;
+            error = new Error("400", NotNegativeErrorMessage);
+            return false;
         }
-
-        return new Money(Math.Round(amount, 8));
+        money = new Money(Math.Round(amount, 8));
+        error = null;
+        return true;
     }
 
 
@@ -77,22 +86,13 @@ public class Money : ValueObject
         yield return Amount;
     }
 
-    internal Money Multiply(Money amount)
+    internal bool Multiply(Money amount, out Money? money, out Error? error)
     {
-        try
-        {
-            return FromDecimal(Math.Round(Amount * amount.Amount, 8));
-        }
-        catch (OverflowException)
-        {
-
-            throw new Error("400", OverflowExceptionMessage);
-        }
-
+        return TryFromDecimal(Math.Round(Amount * amount.Amount, 8), out money, out error);
     }
 
-    internal Money Invert()
+    internal bool Invert(out Money? money, out Error? error)
     {
-        return FromDecimal(Math.Round(1 / Amount, 8));
+        return TryFromDecimal(Math.Round(1 / Amount, 8), out money, out error);
     }
 }
