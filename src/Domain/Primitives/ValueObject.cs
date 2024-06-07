@@ -17,7 +17,6 @@ public abstract class ValueObject
         return !(left == right);
     }
 
-
     public bool Equals(ValueObject? other) => other is not null && ValuesAreEqual(other);
 
     public override bool Equals(object? obj) => obj is ValueObject other && ValuesAreEqual(other);

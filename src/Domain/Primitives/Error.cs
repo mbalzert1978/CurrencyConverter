@@ -1,8 +1,9 @@
 namespace Domain;
 
-public sealed class Error(string code, string? description = null) : Exception
+public sealed record Error(string Code, string? Description = null)
 {
-    public string Code { get; } = code;
-    public string? Description { get; } = description;
     public static readonly Error None = new(string.Empty, string.Empty);
+
+    public static readonly Exception UnreachableException =
+        new("Unreachable should not happen.", new InvalidOperationException("500"));
 }

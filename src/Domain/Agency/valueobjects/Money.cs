@@ -1,98 +1,108 @@
+using System.Globalization;
+
 namespace Domain;
 
 public class Money : ValueObject
 {
-    protected decimal Amount { get; private init; }
-    private const string EmptyErrorMessage =
-        "Money amount cannot be empty.";
-    private const string InvalidCharactersErrorMessage =
-        "Money amount can only contain numbers and/or a dot.";
-    private const string ParsingErrorMessage =
-        "Money amount could not be parsed.";
-    private const string NotNegativeErrorMessage =
-        "Money amount cannot be negative.";
+    public static readonly Money Default = new();
 
-    private const string OverflowExceptionMessage =
+    internal decimal Amount { get; private init; }
+    internal const string EmptyErrorMessage = "Money amount cannot be empty.";
+    internal const string InvalidCharactersErrorMessage =
+        "Money amount can only contain numbers and/or a dot.";
+    internal const string ParsingErrorMessage = "Money amount could not be parsed.";
+    internal const string NotNegativeErrorMessage = "Money amount cannot be negative.";
+
+    internal const string OverflowExceptionMessage =
         "Money amount could not be parsed. Overflow occurred.";
 
-    private Money(decimal amount)
-    {
-        Amount = amount;
-    }
+    internal Money(decimal amount) => Amount = amount;
 
+    internal Money() => Amount = 0;
 
-    public static bool TryFromStr(string amount, out Money? money, out Error? error)
+    public static void TryFromStr(
+        string amount,
+        out Money money,
+        out Error error,
+        IFormatProvider? invariantCulture = default
+    )
     {
+        invariantCulture ??= CultureInfo.InvariantCulture;
         if (string.IsNullOrWhiteSpace(amount))
         {
-            money = null;
-            error = new Error(
-            "400", EmptyErrorMessage);
-            return false;
+            money = Default;
+            error = new Error("400", EmptyErrorMessage);
+            return;
         }
 
         amount = amount.Replace(",", ".");
 
         if (amount.Any(c => !char.IsAsciiDigit(c) && c != '.'))
         {
-            money = null;
-            error = new Error(
-                "400", InvalidCharactersErrorMessage);
+            money = Default;
+            error = new Error("400", InvalidCharactersErrorMessage);
+            return;
         }
 
         if (amount.Count(dot => dot == '.') > 1)
         {
-            error = new Error(
-                "400", ParsingErrorMessage);
+            money = Default;
+            error = new Error("400", ParsingErrorMessage);
+            return;
         }
 
-        if (!decimal.TryParse(amount, System.Globalization.CultureInfo.InvariantCulture, out decimal parsed))
+        if (!decimal.TryParse(amount, invariantCulture, out decimal parsed))
         {
-            money = null;
-            error = new Error(
-                "400", OverflowExceptionMessage);
-            return false;
+            money = Default;
+            error = new Error("400", OverflowExceptionMessage);
+            return;
         }
 
         if (parsed <= 0)
         {
-            money = null;
-            error = new Error(
-                "400", NotNegativeErrorMessage);
-            return false;
+            money = Default;
+            error = new Error("400", NotNegativeErrorMessage);
+            return;
         }
 
         money = new Money(Math.Round(parsed, 8));
-        error = null;
-        return true;
-
+        error = Error.None;
     }
-    internal static bool TryFromDecimal(decimal amount, out Money? money, out Error? error)
+
+    internal static void TryFromDecimal(decimal amount, out Money money, out Error error)
     {
         if (amount <= 0)
         {
-            money = null;
+            money = Default;
             error = new Error("400", NotNegativeErrorMessage);
-            return false;
+            return;
         }
         money = new Money(Math.Round(amount, 8));
-        error = null;
-        return true;
+        error = Error.None;
     }
-
 
     public override IEnumerable<object> GetAtomicValues()
     {
         yield return Amount;
     }
 
-    internal bool Multiply(Money amount, out Money? money, out Error? error)
+    internal Money Multiply(Money amount, out Money money, out Error error)
     {
-        return TryFromDecimal(Math.Round(Amount * amount.Amount, 8), out money, out error);
+        TryFromDecimal(Math.Round(Amount * amount.Amount, 8), out money, out error);
+        if (error != Error.None)
+        {
+            throw Error.UnreachableException;
+        }
+        return money;
     }
 
-    internal bool Invert(out Money? money, out Error? error)
+    internal Money Invert(out Money money, out Error error)
     {
-        return TryFromDecimal(Math.Round(1 / Amount, 8), out money, out error);
+        TryFromDecimal(Math.Round(1 / Amount, 8), out money, out error);
+        if (error != Error.None)
+        {
+            throw Error.UnreachableException;
+        }
+        return money;
     }
 }

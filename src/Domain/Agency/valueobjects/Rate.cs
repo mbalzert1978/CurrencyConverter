@@ -6,10 +6,10 @@ public class Rate : ValueObject
     public Currency CurrencyTo { get; private init; }
     public Money Amount { get; private init; }
     public DateTime DateTime { get; private init; }
-    private const string ParsingErrorMessage =
-        "DateTime is not in a valid ISO 8601 format.";
+    public static readonly Rate Default = new();
+    internal const string ParsingErrorMessage = "DateTime is not in a valid ISO 8601 format.";
 
-    private Rate(Currency currencyFrom, Currency currencyTo, Money amount, DateTime dateTime)
+    internal Rate(Currency currencyFrom, Currency currencyTo, Money amount, DateTime dateTime)
     {
         CurrencyFrom = currencyFrom;
         CurrencyTo = currencyTo;
@@ -17,68 +17,75 @@ public class Rate : ValueObject
         DateTime = dateTime;
     }
 
+    internal Rate()
+    {
+        CurrencyFrom = Currency.Default;
+        CurrencyTo = Currency.Default;
+        Amount = Money.Default;
+        DateTime = DateTime.MinValue;
+    }
 
-    public static bool TryFromStr(string currencyFrom, string currencyTo, string amount, string dateTime, out Rate? rate, out Error? error)
+    public static void TryFromStr(
+        string currencyFrom,
+        string currencyTo,
+        string amount,
+        string dateTime,
+        out Rate rate,
+        out Error error
+    )
     {
         if (!DateTime.TryParse(dateTime, out DateTime parsed))
         {
-            rate = null;
+            rate = Default;
             error = new Error("400", ParsingErrorMessage);
-            return false;
+            return;
         }
-        parsed = parsed.AddSeconds(-parsed.Second)
-               .AddMilliseconds(-parsed.Millisecond);
-        if (!Currency.TryFromStr(currencyFrom, out Currency? from, out Error? fromError))
+        parsed = parsed.AddSeconds(-parsed.Second).AddMilliseconds(-parsed.Millisecond);
+        Currency.TryFromStr(currencyFrom, out Currency? from, out Error? fromError);
+        if (fromError != Error.None)
         {
-            rate = null;
+            rate = Default;
             error = fromError;
-            return false;
+            return;
         }
-        if (!Currency.TryFromStr(currencyTo, out Currency? to, out Error? toError))
+        Currency.TryFromStr(currencyTo, out Currency? to, out Error? toError);
+        if (toError != Error.None)
         {
-            rate = null;
+            rate = Default;
             error = toError;
-            return false;
+            return;
         }
-        if (!Money.TryFromStr(amount, out Money? money, out Error? moneyError))
+        Money.TryFromStr(amount, out Money? money, out Error? moneyError);
+        if (moneyError != Error.None)
         {
-            rate = null;
+            rate = Default;
             error = moneyError;
-            return false;
+            return;
         }
         rate = new Rate(from, to, money, parsed);
-        error = null;
-        return true;
-
+        error = Error.None;
+        return;
     }
 
-    public bool Multiply(Rate other, out Rate? rate, out Error? error)
+    public Rate Multiply(Rate other)
     {
-        if (!Amount.Multiply(other.Amount, out Money? money, out Error? moneyError))
+        Amount.Multiply(other.Amount, out Money money, out Error moneyError);
+        if (moneyError != Error.None)
         {
-            rate = null;
-            error = moneyError;
-            return false;
+            throw Error.UnreachableException;
         }
-        rate = new Rate(other.CurrencyFrom, CurrencyTo, money, DateTime);
-        error = null;
-        return true;
+        return new(other.CurrencyFrom, CurrencyTo, money, DateTime);
     }
 
-    public bool Invert(out Rate? rate, out Error? error)
+    public Rate Invert()
     {
-        if (!Amount.Invert(out Money? money, out Error? moneyError))
+        Amount.Invert(out Money money, out Error moneyError);
+        if (moneyError != Error.None)
         {
-            rate = null;
-            error = moneyError;
-            return false;
+            throw Error.UnreachableException;
         }
-        rate = new Rate(CurrencyTo, CurrencyFrom, money, DateTime);
-        error = null;
-        return true;
+        return new(CurrencyTo, CurrencyFrom, money, DateTime);
     }
-
-
 
     public override IEnumerable<object> GetAtomicValues()
     {

@@ -1,73 +1,137 @@
-namespace Domain.UnitTests;
+namespace UnitTests;
 
 using Domain;
 
 public class RateTests
 {
-    public static IEnumerable<object[]> ValidRateData =>
-    [
-        ["USD", "EUR", "0.85", DateTime.Parse("2023-10-01T00:00:00"), ],
-        ["USD", "EUR", "1.23456789", DateTime.Parse("2023-10-01T00:00:00")],
-        ["USD", "EUR", "1.234567880", DateTime.Parse("2023-10-01T00:00:00")],
-        ["USD", "EUR", "1.234567886", DateTime.Parse("2023-10-01T00:00:00")],
-    ];
-
-    [Theory]
-    [MemberData(nameof(ValidRateData))]
-    public void CreateWhenAllParametersAreValidShouldReturnRateInstance(string expectedCurrencyFrom,
-                                                                        string expectedCurrencyTo,
-                                                                        string expectedRate,
-                                                                        DateTime expectedDate)
+    [Fact]
+    public void TryFromStrWhenDateTimeIsInvalidShouldReturnDefaultRateAndError()
     {
+        // Arrange
+        string currencyFrom = "USD";
+        string currencyTo = "EUR";
+        string amount = "1.23";
+        string dateTime = "invalid-date";
+
         // Act
-        var rateInstance = Rate.TryFromStr(expectedCurrencyFrom, expectedCurrencyTo, expectedRate, expectedDate.ToString());
+        Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime, out var rate, out var error);
 
         // Assert
-        Assert.Equal(Currency.TryFromStr(expectedCurrencyFrom), rateInstance.GetAtomicValues().First());
-        Assert.Equal(Currency.TryFromStr(expectedCurrencyTo), rateInstance.GetAtomicValues().Skip(1).First());
-        Assert.Equal(Money.TryFromStr(expectedRate), rateInstance.GetAtomicValues().Skip(2).First());
-        Assert.Equal(expectedDate, rateInstance.GetAtomicValues().Skip(3).First());
-    }
-
-    public static IEnumerable<object[]> InvalidRateData =>
-    [
-        ["US", "EUR", "0.85", "2023-10-01T00:00:00", "Currency code must be exactly 3 characters long."],
-        ["USD", "EUR", "invalid_rate", "2023-10-01T00:00:00", "Money amount can only contain numbers and/or a dot."],
-        ["USD", "EUR", "0.85", "invalid_date", "DateTime is not in a valid ISO 8601 format."],
-        ["USD", "EUR", "0.00", "2023-10-01T00:00:00", "Money amount cannot be negative."],
-        ["USD", "EUR", "-0.85", "2023-10-01T00:00:00", "Money amount can only contain numbers and/or a dot."],
-        ["USDE", "EUR", "0.85", "2023-10-01T00:00:00", "Currency code must be exactly 3 characters long."],
-        ["USD", "EUR", "0.85", "", "DateTime is not in a valid ISO 8601 format."],
-    ];
-
-    [Theory]
-    [MemberData(nameof(InvalidRateData))]
-    public void CreateWhenInvalidParametersShouldReturnExpectedErrors(
-        string currencyFrom, string currencyTo, string rate, string date, string expectedErrorMessage)
-    {
-        // Act & Assert
-        var exception = Assert.Throws<Error>(() => Rate.TryFromStr(currencyFrom, currencyTo, rate, date));
-        Assert.Equal(expectedErrorMessage, exception.Description);
-    }
-    public static IEnumerable<object[]> RateTestData =>
-    [
-        ["2", "0.5", "1"],
-        ["4", "2", "8"],
-        ["1.00000000", "0.25", "0.25"],
-    ];
-
-    [Theory]
-    [MemberData(nameof(RateTestData))]
-    public void RateWhenMultiplyShouldReturnExpectedResults(string left, string right, string expected)
-    {
-        Assert.Equal(Rate.TryFromStr("USD", "EUR", left, "2023-10-01T00:00:00")
-                         .Multiply(Rate.TryFromStr("JPY", "USD", right, "2023-10-01T00:00:00")),
-                            Rate.TryFromStr("JPY", "EUR", expected, "2023-10-01T00:00:00"));
+        Assert.Equal(Rate.Default, rate);
+        Assert.Equal("400", error.Code);
+        Assert.Equal(Rate.ParsingErrorMessage, error.Description);
     }
 
     [Fact]
-    public void RateWhenInvertRateShouldReturnInvertedRate() =>
-        Assert.Equal(Rate.TryFromStr("USD", "EUR", "2", "2023-10-01T00:00:00")
-                         .Invert(), Rate.TryFromStr("EUR", "USD", "0.50000000", "2023-10-01T00:00:00"));
+    public void TryFromStrWhenCurrencyFromIsInvalidShouldReturnDefaultRateAndError()
+    {
+        // Arrange
+        string currencyFrom = "invalid";
+        string currencyTo = "EUR";
+        string amount = "1.23";
+        string dateTime = "2023-10-01T00:00:00";
 
+        // Act
+        Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime, out var rate, out var error);
+
+        // Assert
+        Assert.Equal(Rate.Default, rate);
+        Assert.NotEqual(Error.None, error);
+    }
+
+    [Fact]
+    public void TryFromStrWhenCurrencyToIsInvalidShouldReturnDefaultRateAndError()
+    {
+        // Arrange
+        string currencyFrom = "USD";
+        string currencyTo = "invalid";
+        string amount = "1.23";
+        string dateTime = "2023-10-01T00:00:00";
+
+        // Act
+        Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime, out var rate, out var error);
+
+        // Assert
+        Assert.Equal(Rate.Default, rate);
+        Assert.NotEqual(Error.None, error);
+    }
+
+    [Fact]
+    public void TryFromStrWhenAmountIsInvalidShouldReturnDefaultRateAndError()
+    {
+        // Arrange
+        string currencyFrom = "USD";
+        string currencyTo = "EUR";
+        string amount = "invalid";
+        string dateTime = "2023-10-01T00:00:00";
+
+        // Act
+        Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime, out var rate, out var error);
+
+        // Assert
+        Assert.Equal(Rate.Default, rate);
+        Assert.NotEqual(Error.None, error);
+    }
+
+    [Fact]
+    public void TryFromStrWhenAllInputsAreValidShouldReturnRateAndNoError()
+    {
+        // Arrange
+        string currencyFrom = "USD";
+        string currencyTo = "EUR";
+        string amount = "1.23";
+        string dateTime = "2023-10-01T00:00:00";
+
+        // Act
+        Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime, out var rate, out var error);
+
+        // Assert
+        Assert.Equal("USD", rate.CurrencyFrom.Code);
+        Assert.Equal("EUR", rate.CurrencyTo.Code);
+        Assert.Equal(1.23m, rate.Amount.Amount);
+        Assert.Equal(DateTime.Parse(dateTime), rate.DateTime);
+        Assert.Equal(Error.None, error);
+    }
+
+    [Fact]
+    public void RateEqualityWhenRatesAreSameShouldBeEqual()
+    {
+        // Arrange
+        var rate1 = new Rate(
+            new Currency("USD"),
+            new Currency("EUR"),
+            new Money(1.23m),
+            DateTime.Parse("2023-10-01T00:00:00")
+        );
+        var rate2 = new Rate(
+            new Currency("USD"),
+            new Currency("EUR"),
+            new Money(1.23m),
+            DateTime.Parse("2023-10-01T00:00:00")
+        );
+
+        // Act & Assert
+        Assert.Equal(rate1, rate2);
+    }
+
+    [Fact]
+    public void RateEqualityWhenRatesAreDifferentShouldNotBeEqual()
+    {
+        // Arrange
+        var rate1 = new Rate(
+            new Currency("USD"),
+            new Currency("EUR"),
+            new Money(1.23m),
+            DateTime.Parse("2023-10-01T00:00:00")
+        );
+        var rate2 = new Rate(
+            new Currency("USD"),
+            new Currency("JPY"),
+            new Money(1.23m),
+            DateTime.Parse("2023-10-01T00:00:00")
+        );
+
+        // Act & Assert
+        Assert.NotEqual(rate1, rate2);
+    }
 }

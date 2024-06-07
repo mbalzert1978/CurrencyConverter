@@ -1,4 +1,6 @@
-namespace Domain.UnitTests;
+namespace UnitTests;
+
+using Domain;
 
 public class EntityTests
 {

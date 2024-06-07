@@ -1,4 +1,4 @@
-﻿namespace Domain.UnitTests;
+﻿namespace UnitTests;
 
 using Domain;
 
