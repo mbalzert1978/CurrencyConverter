@@ -25,39 +25,23 @@ public class Rate : ValueObject
         DateTime = DateTime.MinValue;
     }
 
-    public static Rate TryFromStr(
-        string currencyFrom,
-        string currencyTo,
-        string amount,
-        string dateTime,
-        out Error error
-    )
+    public static Rate TryFromStr(string currencyFrom, string currencyTo, string amount, string dateTime, out Error error)
     {
-        error = Error.BadRequest(ParsingErrorMessage);
-
         if (!DateTime.TryParse(dateTime, out DateTime parsed))
         {
+            error = Error.BadRequest(ParsingErrorMessage);
             return Default;
         }
         parsed = parsed.AddSeconds(-parsed.Second).AddMilliseconds(-parsed.Millisecond);
 
-        Currency.TryFromStr(currencyFrom, out Currency? from, out error);
-        if (error != Error.None)
-        {
-            return Default;
-        }
+        var from = Currency.TryFromStr(currencyFrom, out error);
+        if (error != Error.None) return Default;
 
-        Currency.TryFromStr(currencyTo, out Currency? to, out error);
-        if (error != Error.None)
-        {
-            return Default;
-        }
+        var to = Currency.TryFromStr(currencyTo, out error);
+        if (error != Error.None) return Default;
 
-        Money.TryFromStr(amount, out Money? money, out error);
-        if (error != Error.None)
-        {
-            return Default;
-        }
+        var money = Money.TryFromStr(amount, out error);
+        if (error != Error.None) return Default;
 
         error = Error.None;
         return new Rate(from, to, money, parsed);
@@ -66,7 +50,7 @@ public class Rate : ValueObject
     public Rate Multiply(Rate other, out Error error)
     {
         var money = Amount.Multiply(other.Amount, out error);
-        return error == Error.None ? new(other.CurrencyFrom, CurrencyTo, money, DateTime) : Default;
+        return error == Error.None ? new Rate(other.CurrencyFrom, CurrencyTo, money, DateTime) : Default;
     }
 
     public Rate Invert(out Error error)

@@ -22,7 +22,7 @@ public class AgencyTests
         string expectedMessage
     )
     {
-        Agency.TryCreate(name, address, country, code, out var agency, out Error error);
+        var agency = Agency.TryCreate(name, address, country, code, out Error error);
 
         if (isError)
         {

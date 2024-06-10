@@ -20,7 +20,7 @@ public class MoneyTests
     [MemberData(nameof(MoneyTestCases))]
     public void TryFromStrWhenGivenAStringShouldReturnExpectedResults(string? amount, string expectedMoney, string statusCode, string expectedMessage)
     {
-        Money.TryFromStr(amount, out var money, out var error);
+        var money = Money.TryFromStr(amount, out var error);
         switch (expectedMoney)
         {
             case "DEFAULT":

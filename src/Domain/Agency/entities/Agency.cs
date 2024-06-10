@@ -2,8 +2,7 @@ namespace Domain;
 
 public class Agency : AggregateRoot
 {
-    public static readonly Agency Default =
-        new(Guid.Empty, string.Empty, string.Empty, string.Empty, Currency.Default);
+    public static readonly Agency Default = new(Guid.Empty, string.Empty, string.Empty, string.Empty, Currency.Default);
     internal string Name { get; set; }
     internal string Address { get; set; }
     internal string Country { get; set; }
@@ -19,71 +18,30 @@ public class Agency : AggregateRoot
         BaseCurrency = baseCurrency;
     }
 
-    public static void TryCreate(
-        string name,
-        string address,
-        string country,
-        string code,
-        out Agency agency,
-        out Error error
-    )
+    public static Agency TryCreate(string name, string address, string country, string code, out Error error)
     {
-        Guid id = Guid.NewGuid();
-        Currency.TryFromStr(code, out Currency currency, out Error currencyError);
-        if (currencyError != Error.None)
-        {
-            error = currencyError;
-            agency = Default;
-            return;
-        }
+        var currency = Currency.TryFromStr(code, out error);
+        if (error != Error.None) return Default;
 
         error = Error.None;
-        agency = new(id, name, address, country, currency);
-        return;
+        return new Agency(Guid.NewGuid(), name, address, country, currency);
     }
 
     public void TryUpdate(IUpdateStrategy updateStrategy, out Error error)
     {
-        foreach (UnprocessedRate unprocessed in updateStrategy.Execute())
+        foreach (var unprocessed in updateStrategy.Execute())
         {
-            AddRate(
-                unprocessed.CurrencyFrom,
-                unprocessed.CurrencyTo,
-                unprocessed.Rate,
-                unprocessed.Date,
-                out error
-        );
-            if (error != Error.None)
-            {
-                return;
-            }
+            AddRate(unprocessed.CurrencyFrom, unprocessed.CurrencyTo, unprocessed.Rate, unprocessed.Date, out error);
+            if (error != Error.None) return;
         }
         error = Error.None;
     }
 
-    internal void AddRate(
-        string currencyFrom,
-        string currencyTo,
-        string amount,
-        string dateTime,
-        out Error error
-    )
+    internal void AddRate(string currencyFrom, string currencyTo, string amount, string dateTime, out Error error)
     {
-        var created = Rate.TryFromStr(
-            currencyFrom,
-            currencyTo,
-            amount,
-            dateTime,
-            out error
-        );
-
-        if (error != Error.None)
-        {
-            return;
-        }
-
+        var created = Rate.TryFromStr(currencyFrom, currencyTo, amount, dateTime, out error);
+        if (error != Error.None) return;
         Rates.Add(created);
-        return;
     }
 
     public IReadOnlyCollection<Rate> GetRates() => Rates;
@@ -95,27 +53,17 @@ public class Agency : AggregateRoot
         Rate? FindRate(Func<Rate, bool> predicate) =>
             GetRates().Where(predicate).OrderByDescending(r => r.DateTime).FirstOrDefault();
 
-        Currency.TryFromStr(currencyFrom, out Currency from, out error);
-        if (error != Error.None)
-        {
-            return Rate.Default;
-        }
+        var from = Currency.TryFromStr(currencyFrom, out error);
+        if (error != Error.None) return Rate.Default;
 
-        Currency.TryFromStr(currencyTo, out Currency to, out error);
-        if (error != Error.None)
-        {
-            return Rate.Default;
-        }
+        var to = Currency.TryFromStr(currencyTo, out error);
+        if (error != Error.None) return Rate.Default;
 
-
+        error = Error.NotFound;
         if (from == BaseCurrency)
         {
-            Rate? rate = FindRate(r => r.CurrencyFrom == from && r.CurrencyTo == to && dateTimeFilter(r));
-            if (rate == null)
-            {
-                error = Error.NotFound;
-                return Rate.Default;
-            }
+            var rate = FindRate(r => r.CurrencyFrom == from && r.CurrencyTo == to && dateTimeFilter(r));
+            if (rate == null) return Rate.Default;
 
             error = Error.None;
             return rate;
@@ -123,18 +71,11 @@ public class Agency : AggregateRoot
 
         if (to == BaseCurrency)
         {
-            Rate? rate = FindRate(r => r.CurrencyFrom == to && r.CurrencyTo == from && dateTimeFilter(r));
-            if (rate == null)
-            {
-                error = Error.NotFound;
-                return Rate.Default;
-            }
+            var rate = FindRate(r => r.CurrencyFrom == to && r.CurrencyTo == from && dateTimeFilter(r));
+            if (rate == null) return Rate.Default;
 
             var inverted = rate.Invert(out error);
-            if (error != Error.None)
-            {
-                return Rate.Default;
-            }
+            if (error != Error.None) return Rate.Default;
 
             error = Error.None;
             return inverted;
@@ -143,26 +84,16 @@ public class Agency : AggregateRoot
         var left = FindRate(r => r.CurrencyTo == from && dateTimeFilter(r));
         var right = FindRate(r => r.CurrencyTo == to && dateTimeFilter(r));
 
-        if (left == null || right == null)
-        {
-            error = Error.NotFound;
-            return Rate.Default;
-        }
+        if (left == null || right == null) return Rate.Default;
 
         var multiply = left.Multiply(right, out error);
-        if (error != Error.None)
-        {
-            return Rate.Default;
-        }
+        if (error != Error.None) return Rate.Default;
 
         var result = multiply.Invert(out error);
-        if (error != Error.None)
-        {
-            return Rate.Default;
-        }
+        if (error != Error.None) return Rate.Default;
+
         error = Error.None;
         return result;
-
     }
 }
 

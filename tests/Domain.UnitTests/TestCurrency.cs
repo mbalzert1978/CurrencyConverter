@@ -25,7 +25,7 @@ public class CurrencyTests
                                                             string statusCode,
                                                             string expectedMessage)
     {
-        Currency.TryFromStr(code, out var currency, out var error);
+        var currency = Currency.TryFromStr(code, out var error);
         switch (expectedCode)
         {
             case "DEFAULT":
