@@ -37,7 +37,7 @@ public class Rate : ValueObject
         if (!DateTime.TryParse(dateTime, out DateTime parsed))
         {
             rate = Default;
-            error = new Error("400", ParsingErrorMessage);
+            error = new Error(StatusCode.BadRequest, ParsingErrorMessage);
             return;
         }
         parsed = parsed.AddSeconds(-parsed.Second).AddMilliseconds(-parsed.Millisecond);
@@ -67,23 +67,27 @@ public class Rate : ValueObject
         return;
     }
 
-    public Rate Multiply(Rate other)
+    public Rate Multiply(Rate other, out Error error)
     {
         Amount.Multiply(other.Amount, out Money money, out Error moneyError);
         if (moneyError != Error.None)
         {
-            throw Error.UnreachableException;
+            error = moneyError;
+            return Default;
         }
+        error = Error.None;
         return new(other.CurrencyFrom, CurrencyTo, money, DateTime);
     }
 
-    public Rate Invert()
+    public Rate Invert(out Error error)
     {
         Amount.Invert(out Money money, out Error moneyError);
         if (moneyError != Error.None)
         {
-            throw Error.UnreachableException;
+            error = moneyError;
+            return Default;
         }
+        error = Error.None;
         return new(CurrencyTo, CurrencyFrom, money, DateTime);
     }
 

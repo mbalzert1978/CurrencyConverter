@@ -105,10 +105,12 @@ public class AgencyTests
         DateTime? dateTime = DateTime.Parse("2023-10-01T00:00:00");
 
         // Act
-        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime);
+        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime, out Error error);
+
 
         // Assert
         Assert.Null(rate);
+        Assert.NotEqual(Error.None, error);
     }
 
     [Fact]
@@ -127,10 +129,11 @@ public class AgencyTests
         DateTime? dateTime = DateTime.Parse("2023-10-01T00:00:00");
 
         // Act
-        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime);
+        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime, out Error error);
 
         // Assert
         Assert.Null(rate);
+        Assert.NotEqual(Error.None, error);
     }
 
     [Fact]
@@ -150,10 +153,11 @@ public class AgencyTests
         DateTime? dateTime = DateTime.Parse("2023-10-01T00:00:00");
 
         // Act
-        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime);
+        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime, out Error error);
 
         // Assert
         Assert.NotNull(rate);
+        Assert.Equal(Error.None, error);
         Assert.Equal("USD", rate.CurrencyFrom.Code);
         Assert.Equal("EUR", rate.CurrencyTo.Code);
         Assert.Equal(1.23m, rate.Amount.Amount);

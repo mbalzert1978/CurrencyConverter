@@ -4,129 +4,60 @@ using Domain;
 
 public class CurrencyTests
 {
-    [Fact]
-    public void TryFromStrWhenCodeIsEmptyShouldReturnDefaultCurrencyAndError()
-    {
-        // Arrange
-        string code = string.Empty;
+#pragma warning disable CS8625, CS8602, CS8604
+    public static IEnumerable<object[]> CurrencyTestCases =>
+    [
+        ["USD", "USD", string.Empty, string.Empty],
+        ["EUR", "EUR", string.Empty, string.Empty],
+        ["US", "DEFAULT", StatusCode.BadRequest, "Currency code must be exactly 3 characters long."],
+        ["U", "DEFAULT", StatusCode.BadRequest, "Currency code must be exactly 3 characters long."],
+        ["USDE", "DEFAULT", StatusCode.BadRequest, "Currency code must be exactly 3 characters long."],
+        ["123", "DEFAULT", StatusCode.BadRequest, "Currency code can only contain letters."],
+        ["+US", "DEFAULT", StatusCode.BadRequest, "Currency code can only contain letters."],
+        ["", "DEFAULT", StatusCode.BadRequest, "Currency code cannot be empty."],
+        [null, "DEFAULT", StatusCode.BadRequest, "Currency code cannot be empty."],
+    ];
 
-        // Act
+    [Theory]
+    [MemberData(nameof(CurrencyTestCases))]
+    public void CurrencyTryFromStrWhenInputShouldReturnExpectedOutput(string? code,
+                                                            string expectedCode,
+                                                            string statusCode,
+                                                            string expectedMessage)
+    {
         Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(Currency.Default, currency);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Currency.EmptyErrorMessage, error.Description);
+        switch (expectedCode)
+        {
+            case "DEFAULT":
+                Assert.Equal(Currency.Default, currency);
+                Assert.Equal(statusCode, error.Code);
+                Assert.Equal(expectedMessage, error.Description);
+                break;
+            default:
+                Assert.Equal(expectedCode, currency.Code);
+                Assert.Equal(Error.None, error);
+                break;
+        }
     }
 
-    [Fact]
-    public void TryFromStrWhenCodeIsNullShouldReturnDefaultCurrencyAndError()
+    public static IEnumerable<object[]> CurrencyEqualityCases =>
+    [
+        ["USD", "USD", true],
+        ["USD", "GBP", false]
+    ];
+
+    [Theory]
+    [MemberData(nameof(CurrencyEqualityCases))]
+    public void EqualityWhenEqualShouldBeTrue(string left,
+                                              string right,
+                                              bool expectedEquality)
     {
-        // Arrange
-        string code = "   ";
-
-        // Act
-        Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(Currency.Default, currency);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Currency.EmptyErrorMessage, error.Description);
+        Currency currencyLeft = new(left);
+        Currency currencyRight = new(right);
+        Assert.Equal(expectedEquality, currencyLeft.Equals(currencyRight));
+        Assert.Equal(expectedEquality, currencyLeft == currencyRight);
+        Assert.Equal(!expectedEquality, currencyLeft != currencyRight);
     }
+#pragma warning restore CS8602, CS8625
 
-    [Fact]
-    public void TryFromStrWhenCodeIsWhitespaceShouldReturnDefaultCurrencyAndError()
-    {
-        // Arrange
-        string code = "   ";
-
-        // Act
-        Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(Currency.Default, currency);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Currency.EmptyErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenCodeIsTooShortShouldReturnDefaultCurrencyAndError()
-    {
-        // Arrange
-        string code = "AB";
-
-        // Act
-        Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(Currency.Default, currency);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Currency.InvalidLengthErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenCodeIsTooLongShouldReturnDefaultCurrencyAndError()
-    {
-        // Arrange
-        string code = "ABCD";
-
-        // Act
-        Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(Currency.Default, currency);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Currency.InvalidLengthErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenCodeContainsNonLetterCharactersShouldReturnDefaultCurrencyAndError()
-    {
-        // Arrange
-        string code = "A1C";
-
-        // Act
-        Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(Currency.Default, currency);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Currency.InvalidCharactersErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenCodeIsValidShouldReturnCurrencyAndNoError()
-    {
-        // Arrange
-        string code = "USD";
-
-        // Act
-        Currency.TryFromStr(code, out var currency, out var error);
-
-        // Assert
-        Assert.Equal(code, currency.Code);
-        Assert.Equal(Error.None, error);
-    }
-
-    [Fact]
-    public void CurrencyEqualityWhenCodesAreSameShouldBeEqual()
-    {
-        // Arrange
-        var currency1 = new Currency("USD");
-        var currency2 = new Currency("USD");
-
-        // Act & Assert
-        Assert.Equal(currency1, currency2);
-    }
-
-    [Fact]
-    public void CurrencyEqualityWhenCodesAreDifferentShouldNotBeEqual()
-    {
-        // Arrange
-        var currency1 = new Currency("USD");
-        var currency2 = new Currency("EUR");
-
-        // Act & Assert
-        Assert.NotEqual(currency1, currency2);
-    }
 }

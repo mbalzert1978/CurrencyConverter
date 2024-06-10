@@ -5,9 +5,9 @@ public class Currency : ValueObject
     public static readonly Currency Default = new("DEFAULT");
 
     internal string Code { get; private init; }
-    internal const string EmptyErrorMessage = "Currency code cannot be empty.";
-    internal const string InvalidCharactersErrorMessage = "Currency code can only contain letters.";
-    internal const string InvalidLengthErrorMessage =
+    internal const string EmptyMessage = "Currency code cannot be empty.";
+    internal const string InvalidCharactersMessage = "Currency code can only contain letters.";
+    internal const string InvalidLengthMessage =
         "Currency code must be exactly 3 characters long.";
 
     internal Currency(string code) => Code = code;
@@ -16,29 +16,14 @@ public class Currency : ValueObject
 
     public static void TryFromStr(string code, out Currency currency, out Error error)
     {
-        if (string.IsNullOrWhiteSpace(code))
+        (currency, error) = code switch
         {
-            currency = Default;
-            error = new Error("400", EmptyErrorMessage);
-            return;
-        }
-
-        if (code.Length != 3)
-        {
-            currency = Default;
-            error = new Error("400", InvalidLengthErrorMessage);
-            return;
-        }
-
-        if (code.Any(c => !char.IsLetter(c)))
-        {
-            currency = Default;
-            error = new Error("400", InvalidCharactersErrorMessage);
-            return;
-        }
-
-        currency = new Currency(code.ToUpperInvariant());
-        error = Error.None;
+            null => (Default, new Error(StatusCode.BadRequest, EmptyMessage)),
+            { } when string.IsNullOrWhiteSpace(code) => (Default, new Error(StatusCode.BadRequest, EmptyMessage)),
+            { } when code.Length != 3 => (Default, new Error(StatusCode.BadRequest, InvalidLengthMessage)),
+            { } when code.Any(c => !char.IsLetter(c)) => (Default, new Error(StatusCode.BadRequest, InvalidCharactersMessage)),
+            _ => (new Currency(code.ToUpperInvariant()), Error.None)
+        };
     }
 
     public override IEnumerable<object> GetAtomicValues()

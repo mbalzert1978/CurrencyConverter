@@ -4,143 +4,75 @@ using Domain;
 
 public class MoneyTests
 {
-    [Fact]
-    public void TryFromStrWhenAmountIsEmptyShouldReturnDefaultMoneyAndError()
+#pragma warning disable CS8625, CS8602, CS8604
+
+    public static IEnumerable<object[]> MoneyTestCases =>
+    [
+        [string.Empty, "DEFAULT", StatusCode.BadRequest, Money.EmptyMessage],
+        [null, "DEFAULT", StatusCode.BadRequest, Money.EmptyMessage],
+        ["   ", "DEFAULT", StatusCode.BadRequest, Money.EmptyMessage],
+        ["12.34a", "DEFAULT", StatusCode.BadRequest, Money.InvalidCharactersMessage],
+        ["-12.34", "DEFAULT", StatusCode.BadRequest, Money.InvalidCharactersMessage],
+        ["12.34.56", "DEFAULT", StatusCode.BadRequest, Money.ParsingErrorMessage],
+        ["12", "12", string.Empty, string.Empty],
+    ];
+    [Theory]
+    [MemberData(nameof(MoneyTestCases))]
+    public void TryFromStrWhenGivenAStringShouldReturnExpectedResults(string? amount, string expectedMoney, string statusCode, string expectedMessage)
     {
-        // Arrange
-        string amount = string.Empty;
-
-        // Act
         Money.TryFromStr(amount, out var money, out var error);
-
-        // Assert
-        Assert.Equal(Money.Default, money);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Money.EmptyErrorMessage, error.Description);
+        switch (expectedMoney)
+        {
+            case "DEFAULT":
+                Assert.Equal(Money.Default, money);
+                Assert.Equal(statusCode, error.Code);
+                Assert.Equal(expectedMessage, error.Description);
+                break;
+            default:
+                Assert.Equal(Math.Round(decimal.Parse(expectedMoney), 8), money.Amount);
+                Assert.Equal(Error.None, error);
+                break;
+        }
     }
 
-    [Fact]
-    public void TryFromStrWhenAmountIsNullShouldReturnDefaultMoneyAndError()
-    {
-        // Arrange
-        string amount = "   ";
-
-        // Act
-        Money.TryFromStr(amount, out var money, out var error);
-
-        // Assert
-        Assert.Equal(Money.Default, money);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Money.EmptyErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenAmountContainsInvalidCharactersShouldReturnDefaultMoneyAndError()
-    {
-        // Arrange
-        string amount = "12.34a";
-
-        // Act
-        Money.TryFromStr(amount, out var money, out var error);
-
-        // Assert
-        Assert.Equal(Money.Default, money);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Money.InvalidCharactersErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenAmountContainsMultipleDotsShouldReturnDefaultMoneyAndError()
-    {
-        // Arrange
-        string amount = "12.34.56";
-
-        // Act
-        Money.TryFromStr(amount, out var money, out var error);
-
-        // Assert
-        Assert.Equal(Money.Default, money);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Money.ParsingErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenAmountIsNegativeShouldReturnDefaultMoneyAndError()
-    {
-        // Arrange
-        string amount = "-12.34";
-
-        // Act
-        Money.TryFromStr(amount, out var money, out var error);
-
-        // Assert
-        Assert.Equal(Money.Default, money);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Money.InvalidCharactersErrorMessage, error.Description);
-    }
-
-    [Fact]
-    public void TryFromStrWhenAmountIsValidShouldReturnMoneyAndNoError()
-    {
-        // Arrange
-        string amount = "12.34";
-
-        // Act
-        Money.TryFromStr(amount, out var money, out var error);
-
-        // Assert
-        Assert.Equal(12.34m, money.Amount);
-        Assert.Equal(Error.None, error);
-    }
 
     [Fact]
     public void TryFromDecimalWhenAmountIsNegativeShouldReturnDefaultMoneyAndError()
     {
-        // Arrange
-        decimal amount = -12.34m;
+        Money.TryFromDecimal(-12.34m, out var money, out var error);
 
-        // Act
-        Money.TryFromDecimal(amount, out var money, out var error);
-
-        // Assert
         Assert.Equal(Money.Default, money);
-        Assert.Equal("400", error.Code);
-        Assert.Equal(Money.NotNegativeErrorMessage, error.Description);
+        Assert.Equal(StatusCode.BadRequest, error.Code);
+        Assert.Equal(Money.NotNegativeMessage, error.Description);
     }
 
     [Fact]
     public void TryFromDecimalWhenAmountIsValidShouldReturnMoneyAndNoError()
     {
-        // Arrange
-        decimal amount = 12.34m;
+        Money.TryFromDecimal(12.34m, out var money, out var error);
 
-        // Act
-        Money.TryFromDecimal(amount, out var money, out var error);
-
-        // Assert
         Assert.Equal(12.34m, money.Amount);
         Assert.Equal(Error.None, error);
     }
 
-    [Fact]
-    public void MoneyEqualityWhenAmountsAreSameShouldBeEqual()
+    public static IEnumerable<object[]> CurrencyEqualityCases =>
+        [
+            [12, 12, true],
+            [12.5, 5.125, false]
+        ];
+
+    [Theory]
+    [MemberData(nameof(CurrencyEqualityCases))]
+    public void EqualityWhenEqualShouldBeTrue(decimal left,
+                                              decimal right,
+                                              bool expectedEquality)
     {
-        // Arrange
-        var money1 = new Money(12.34m);
-        var money2 = new Money(12.34m);
-
-        // Act & Assert
-        Assert.Equal(money1, money2);
+        Money moneyLeft = new(left);
+        Money moneyRight = new(right);
+        Assert.Equal(expectedEquality, moneyLeft.Equals(moneyRight));
+        Assert.Equal(expectedEquality, moneyLeft == moneyRight);
+        Assert.Equal(!expectedEquality, moneyLeft != moneyRight);
     }
+#pragma warning restore CS8602, CS8625
 
-    [Fact]
-    public void MoneyEqualityWhenAmountsAreDifferentShouldNotBeEqual()
-    {
-        // Arrange
-        var money1 = new Money(12.34m);
-        var money2 = new Money(56.78m);
-
-        // Act & Assert
-        Assert.NotEqual(money1, money2);
-    }
 }
