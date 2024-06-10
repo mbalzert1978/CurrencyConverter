@@ -4,7 +4,7 @@ using Domain;
 
 public class MoneyTests
 {
-#pragma warning disable CS8625, CS8602, CS8604
+#pragma warning disable CS8625, CS8602, CS8604, CS8629
 
     public static IEnumerable<object[]> MoneyTestCases =>
     [
@@ -73,6 +73,50 @@ public class MoneyTests
         Assert.Equal(expectedEquality, moneyLeft == moneyRight);
         Assert.Equal(!expectedEquality, moneyLeft != moneyRight);
     }
-#pragma warning restore CS8602, CS8625
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(-5, true)]
+    [InlineData(5, false)]
+    public void MultiplyWhenAmountIsInvalidShouldReturnNullAndSetError(decimal amountValue, bool isError)
+    {
+        Money result = new Money(10).Multiply(new(amountValue), out Error error);
+
+        // Assert
+        if (isError)
+        {
+            Assert.Equal(Money.Default, result);
+            Assert.Equal(StatusCode.BadRequest, error.Code);
+            Assert.Equal(Money.NotNegativeMessage, error.Description);
+        }
+        else
+        {
+            Assert.NotNull(result);
+            Assert.Equal(Math.Round(10 * amountValue, 8), result.Amount);
+            Assert.Equal(Error.None, error);
+        }
+    }
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(-5, true)]
+    [InlineData(0, true)]
+    public void InvertWhenAmountIsInvalidShouldReturnNullAndSetError(decimal amountValue, bool isError)
+    {
+        Money result = new Money(amountValue).Invert(out Error error);
+
+        // Assert
+        if (isError)
+        {
+            Assert.Equal(Money.Default, result);
+            Assert.Contains(error.Code, new[] { StatusCode.BadRequest, StatusCode.InternalServerError });
+            Assert.Contains(error.Description, new[] { Money.NotNegativeMessage, Error.UnreachableMessage });
+        }
+        else
+        {
+            Assert.NotNull(result);
+            Assert.Equal(Math.Round(1 / amountValue, 8), result.Amount);
+            Assert.Equal(Error.None, error);
+        }
+    }
+#pragma warning restore CS8602, CS8625, CS8629
 
 }

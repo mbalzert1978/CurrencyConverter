@@ -4,48 +4,62 @@ using Domain;
 
 public class AgencyTests
 {
-    [Fact]
-    public void TryCreateWhenCurrencyCodeIsInvalidShouldReturnDefaultAgencyAndError()
+#pragma warning disable CS8604, CS8625
+    public static IEnumerable<object[]> AgencyCreateTestCases =>
+    [
+        ["USD", "foo", "bar", "baz", false, string.Empty,string.Empty],
+        ["invalid", "foo", "bar", "baz", true, StatusCode.BadRequest, Currency.InvalidLengthMessage],
+    ];
+    [Theory]
+    [MemberData(nameof(AgencyCreateTestCases))]
+    public void TryCreateWhenCalledShouldReturnExpectedResult(
+        string code,
+        string name,
+        string address,
+        string country,
+        bool isError,
+        string statusCode,
+        string expectedMessage
+    )
     {
-        // Arrange
-        string name = "Test Agency";
-        string address = "123 Test St";
-        string country = "Testland";
-        string code = "invalid";
+        Agency.TryCreate(name, address, country, code, out var agency, out Error error);
 
-        // Act
-        Agency.TryCreate(name, address, country, code, out var agency, out var error);
-
-        // Assert
-        Assert.Equal(Agency.Default, agency);
-        Assert.NotEqual(Error.None, error);
+        if (isError)
+        {
+            Assert.Equal(statusCode, error.Code);
+            Assert.Equal(expectedMessage, error.Description);
+        }
+        else
+        {
+            Assert.Equal(name, agency.Name);
+            Assert.Equal(address, agency.Address);
+            Assert.Equal(country, agency.Country);
+            Assert.Equal(code, agency.BaseCurrency.Code);
+            Assert.Equal(Error.None, error);
+        }
     }
 
-    [Fact]
-    public void TryCreateWhenAllInputsAreValidShouldReturnAgencyAndNoError()
+    public static IEnumerable<object[]> AddRateTestCases =>
+    [
+        ["USD", "EUR", "1,23", "2023-10-01T00:00:00", false, string.Empty,string.Empty],
+        ["USD", "EUR", "1,23", "invalid-date", true, StatusCode.BadRequest, Rate.ParsingErrorMessage],
+        ["invalid", "EUR", "1,23", "2023-10-01T00:00:00", true, StatusCode.BadRequest, Currency.InvalidLengthMessage],
+        ["USD", "invalid", "1,23", "2023-10-01T00:00:00", true, StatusCode.BadRequest, Currency.InvalidLengthMessage],
+        ["USD", "EUR", "invalid", "2023-10-01T00:00:00", true, StatusCode.BadRequest, Money.InvalidCharactersMessage],
+        ["USD", "EUR", "invalid", "2023-10-01T00:00:00", true, StatusCode.BadRequest, Money.InvalidCharactersMessage],
+    ];
+    [Theory]
+    [MemberData(nameof(AddRateTestCases))]
+    public void AddRateWhenCalledShouldReturnExpectedResults(
+        string currencyFrom,
+        string currencyTo,
+        string amount,
+        string dateTime,
+        bool isError,
+        string statusCode,
+        string expectedMessage
+    )
     {
-        // Arrange
-        string name = "Test Agency";
-        string address = "123 Test St";
-        string country = "Testland";
-        string code = "USD";
-
-        // Act
-        Agency.TryCreate(name, address, country, code, out var agency, out var error);
-
-        // Assert
-        Assert.NotEqual(Agency.Default, agency);
-        Assert.Equal(name, agency.Name);
-        Assert.Equal(address, agency.Address);
-        Assert.Equal(country, agency.Country);
-        Assert.Equal("USD", agency.BaseCurrency.Code);
-        Assert.Equal(Error.None, error);
-    }
-
-    [Fact]
-    public void AddRateWhenRateIsInvalidShouldReturnError()
-    {
-        // Arrange
         var agency = new Agency(
             Guid.NewGuid(),
             "Test Agency",
@@ -53,22 +67,50 @@ public class AgencyTests
             "Testland",
             new Currency("USD")
         );
-        string currencyFrom = "invalid";
-        string currencyTo = "EUR";
-        string amount = "1.23";
-        string dateTime = "2023-10-01T00:00:00";
 
-        // Act
         agency.AddRate(currencyFrom, currencyTo, amount, dateTime, out var error);
 
-        // Assert
-        Assert.NotEqual(Error.None, error);
+        if (isError)
+        {
+            Assert.Equal(statusCode, error.Code);
+            Assert.Equal(expectedMessage, error.Description);
+        }
+        else
+        {
+            Assert.Equal(Error.None, error);
+            Assert.Single(agency.GetRates());
+            Assert.Equal(new Rate(new Currency(currencyFrom),
+                                  new Currency(currencyTo),
+                                  new Money(decimal.Parse(amount)),
+                                  DateTime.Parse(dateTime)), agency.GetRates().First());
+        }
     }
 
-    [Fact]
-    public void AddRateWhenAllInputsAreValidShouldAddRateAndNoError()
+    public static IEnumerable<object[]> GetRateTestCases =>
+    [
+        ["USD", "EUR", DateTime.Parse("2023-10-01T00:00:00"), 1.00, false, string.Empty, string.Empty],
+        ["USD", "EUR", DateTime.Parse("2023-10-02T00:00:00"), 1.25, false, string.Empty, string.Empty],
+        ["EUR", "USD", DateTime.Parse("2023-10-02T00:00:00"), 0.8, false, string.Empty, string.Empty],
+        ["EUR", "JPY", DateTime.Parse("2023-10-01T00:00:00"), 100, false, string.Empty, string.Empty],
+        ["EUR", "JPY", DateTime.Parse("2023-10-02T00:00:00"), 64, false, string.Empty, string.Empty],
+        ["EUR", "JPY", null, 44.44444444, false, string.Empty, string.Empty],
+        ["USD", "GBP", DateTime.Parse("2023-10-01T00:00:00"), 1.00, true, StatusCode.NotFound, Error.NotFoundMessage],
+        ["USD", "GBP", null, 1.00, true, StatusCode.NotFound, Error.NotFoundMessage],
+
+    ];
+
+    [Theory]
+    [MemberData(nameof(GetRateTestCases))]
+    public void GetRateWhenCalledShouldReturnExpected(
+        string currencyFrom,
+        string currencyTo,
+        DateTime? dateTime,
+        decimal expectedAmount,
+        bool isError,
+        string statusCode,
+        string expectedMessage
+    )
     {
-        // Arrange
         var agency = new Agency(
             Guid.NewGuid(),
             "Test Agency",
@@ -76,91 +118,26 @@ public class AgencyTests
             "Testland",
             new Currency("USD")
         );
-        string currencyFrom = "USD";
-        string currencyTo = "EUR";
-        string amount = "1.23";
-        string dateTime = "2023-10-01T00:00:00";
+        agency.AddRate(agency.BaseCurrency.Code, "EUR", "1", "2023-10-01T00:00:00", out _);
+        agency.AddRate(agency.BaseCurrency.Code, "EUR", "1.25", "2023-10-02T00:00:00", out _);
+        agency.AddRate(agency.BaseCurrency.Code, "EUR", "1.5", "2023-10-03T00:00:00", out _);
+        agency.AddRate(agency.BaseCurrency.Code, "JPY", "0.01", "2023-10-01T00:00:00", out _);
+        agency.AddRate(agency.BaseCurrency.Code, "JPY", "0.0125", "2023-10-02T00:00:00", out _);
+        agency.AddRate(agency.BaseCurrency.Code, "JPY", "0.0150", "2023-10-03T00:00:00", out _);
 
-        // Act
-        agency.AddRate(currencyFrom, currencyTo, amount, dateTime, out var error);
-
-        // Assert
-        Assert.Equal(Error.None, error);
-        Assert.Single(agency.GetRates());
-    }
-
-    [Fact]
-    public void GetRateWhenCurrencyFromIsInvalidShouldReturnNull()
-    {
-        // Arrange
-        var agency = new Agency(
-            Guid.NewGuid(),
-            "Test Agency",
-            "123 Test St",
-            "Testland",
-            new Currency("USD")
-        );
-        string currencyFrom = "invalid";
-        string currencyTo = "EUR";
-        DateTime? dateTime = DateTime.Parse("2023-10-01T00:00:00");
-
-        // Act
         var rate = agency.GetRate(currencyFrom, currencyTo, dateTime, out Error error);
 
-
-        // Assert
-        Assert.Null(rate);
-        Assert.NotEqual(Error.None, error);
+        if (isError)
+        {
+            Assert.Equal(statusCode, error.Code);
+            Assert.Equal(expectedMessage, error.Description);
+        }
+        else
+        {
+            Assert.Equal(new Money(expectedAmount), rate.Amount);
+            Assert.Equal(Error.None, error);
+        }
     }
 
-    [Fact]
-    public void GetRateWhenCurrencyToIsInvalidShouldReturnNull()
-    {
-        // Arrange
-        var agency = new Agency(
-            Guid.NewGuid(),
-            "Test Agency",
-            "123 Test St",
-            "Testland",
-            new Currency("USD")
-        );
-        string currencyFrom = "USD";
-        string currencyTo = "invalid";
-        DateTime? dateTime = DateTime.Parse("2023-10-01T00:00:00");
-
-        // Act
-        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime, out Error error);
-
-        // Assert
-        Assert.Null(rate);
-        Assert.NotEqual(Error.None, error);
-    }
-
-    [Fact]
-    public void GetRateWhenAllInputsAreValidShouldReturnRate()
-    {
-        // Arrange
-        var agency = new Agency(
-            Guid.NewGuid(),
-            "Test Agency",
-            "123 Test St",
-            "Testland",
-            new Currency("USD")
-        );
-        agency.AddRate("USD", "EUR", "1.23", "2023-10-01T00:00:00", out _);
-        string currencyFrom = "USD";
-        string currencyTo = "EUR";
-        DateTime? dateTime = DateTime.Parse("2023-10-01T00:00:00");
-
-        // Act
-        var rate = agency.GetRate(currencyFrom, currencyTo, dateTime, out Error error);
-
-        // Assert
-        Assert.NotNull(rate);
-        Assert.Equal(Error.None, error);
-        Assert.Equal("USD", rate.CurrencyFrom.Code);
-        Assert.Equal("EUR", rate.CurrencyTo.Code);
-        Assert.Equal(1.23m, rate.Amount.Amount);
-        Assert.Equal(dateTime, rate.DateTime);
-    }
+#pragma warning restore CS8604, CS8625
 }

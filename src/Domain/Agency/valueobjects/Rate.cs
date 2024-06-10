@@ -25,70 +25,54 @@ public class Rate : ValueObject
         DateTime = DateTime.MinValue;
     }
 
-    public static void TryFromStr(
+    public static Rate TryFromStr(
         string currencyFrom,
         string currencyTo,
         string amount,
         string dateTime,
-        out Rate rate,
         out Error error
     )
     {
+        error = Error.BadRequest(ParsingErrorMessage);
+
         if (!DateTime.TryParse(dateTime, out DateTime parsed))
         {
-            rate = Default;
-            error = new Error(StatusCode.BadRequest, ParsingErrorMessage);
-            return;
+            return Default;
         }
         parsed = parsed.AddSeconds(-parsed.Second).AddMilliseconds(-parsed.Millisecond);
-        Currency.TryFromStr(currencyFrom, out Currency? from, out Error? fromError);
-        if (fromError != Error.None)
+
+        Currency.TryFromStr(currencyFrom, out Currency? from, out error);
+        if (error != Error.None)
         {
-            rate = Default;
-            error = fromError;
-            return;
+            return Default;
         }
-        Currency.TryFromStr(currencyTo, out Currency? to, out Error? toError);
-        if (toError != Error.None)
+
+        Currency.TryFromStr(currencyTo, out Currency? to, out error);
+        if (error != Error.None)
         {
-            rate = Default;
-            error = toError;
-            return;
+            return Default;
         }
-        Money.TryFromStr(amount, out Money? money, out Error? moneyError);
-        if (moneyError != Error.None)
+
+        Money.TryFromStr(amount, out Money? money, out error);
+        if (error != Error.None)
         {
-            rate = Default;
-            error = moneyError;
-            return;
+            return Default;
         }
-        rate = new Rate(from, to, money, parsed);
+
         error = Error.None;
-        return;
+        return new Rate(from, to, money, parsed);
     }
 
     public Rate Multiply(Rate other, out Error error)
     {
-        Amount.Multiply(other.Amount, out Money money, out Error moneyError);
-        if (moneyError != Error.None)
-        {
-            error = moneyError;
-            return Default;
-        }
-        error = Error.None;
-        return new(other.CurrencyFrom, CurrencyTo, money, DateTime);
+        var money = Amount.Multiply(other.Amount, out error);
+        return error == Error.None ? new(other.CurrencyFrom, CurrencyTo, money, DateTime) : Default;
     }
 
     public Rate Invert(out Error error)
     {
-        Amount.Invert(out Money money, out Error moneyError);
-        if (moneyError != Error.None)
-        {
-            error = moneyError;
-            return Default;
-        }
-        error = Error.None;
-        return new(CurrencyTo, CurrencyFrom, money, DateTime);
+        var money = Amount.Invert(out error);
+        return error == Error.None ? new Rate(CurrencyTo, CurrencyFrom, money, DateTime) : Default;
     }
 
     public override IEnumerable<object> GetAtomicValues()

@@ -2,7 +2,6 @@ namespace Domain;
 
 public class Agency : AggregateRoot
 {
-    private const string ErrorMessage = "Rate not found.";
     public static readonly Agency Default =
         new(Guid.Empty, string.Empty, string.Empty, string.Empty, Currency.Default);
     internal string Name { get; set; }
@@ -52,16 +51,14 @@ public class Agency : AggregateRoot
                 unprocessed.CurrencyTo,
                 unprocessed.Rate,
                 unprocessed.Date,
-                out Error rateError
-            );
-            if (rateError != Error.None)
+                out error
+        );
+            if (error != Error.None)
             {
-                error = rateError;
                 return;
             }
         }
         error = Error.None;
-        return;
     }
 
     internal void AddRate(
@@ -72,48 +69,42 @@ public class Agency : AggregateRoot
         out Error error
     )
     {
-        Rate.TryFromStr(
+        var created = Rate.TryFromStr(
             currencyFrom,
             currencyTo,
             amount,
             dateTime,
-            out Rate created,
-            out Error rateError
+            out error
         );
 
-        if (rateError != Error.None)
+        if (error != Error.None)
         {
-            error = rateError;
             return;
         }
 
         Rates.Add(created);
-
-        error = Error.None;
         return;
     }
 
     public IReadOnlyCollection<Rate> GetRates() => Rates;
 
-    public Rate? GetRate(string currencyFrom, string currencyTo, DateTime? dateTime, out Error error)
+    public Rate GetRate(string currencyFrom, string currencyTo, DateTime? dateTime, out Error error)
     {
         bool dateTimeFilter(Rate r) => !dateTime.HasValue || r.DateTime == dateTime;
 
         Rate? FindRate(Func<Rate, bool> predicate) =>
             GetRates().Where(predicate).OrderByDescending(r => r.DateTime).FirstOrDefault();
 
-        Currency.TryFromStr(currencyFrom, out Currency from, out Error errorFrom);
-        if (errorFrom != Error.None)
+        Currency.TryFromStr(currencyFrom, out Currency from, out error);
+        if (error != Error.None)
         {
-            error = errorFrom;
-            return null;
+            return Rate.Default;
         }
 
-        Currency.TryFromStr(currencyTo, out Currency to, out errorFrom);
-        if (errorFrom != Error.None)
+        Currency.TryFromStr(currencyTo, out Currency to, out error);
+        if (error != Error.None)
         {
-            error = errorFrom;
-            return null;
+            return Rate.Default;
         }
 
 
@@ -122,7 +113,7 @@ public class Agency : AggregateRoot
             Rate? rate = FindRate(r => r.CurrencyFrom == from && r.CurrencyTo == to && dateTimeFilter(r));
             if (rate == null)
             {
-                error = new Error(StatusCode.NotFound, ErrorMessage);
+                error = Error.NotFound;
                 return Rate.Default;
             }
 
@@ -135,14 +126,13 @@ public class Agency : AggregateRoot
             Rate? rate = FindRate(r => r.CurrencyFrom == to && r.CurrencyTo == from && dateTimeFilter(r));
             if (rate == null)
             {
-                error = new Error(StatusCode.NotFound, ErrorMessage);
+                error = Error.NotFound;
                 return Rate.Default;
             }
 
-            var inverted = rate.Invert(out errorFrom);
-            if (errorFrom != Error.None)
+            var inverted = rate.Invert(out error);
+            if (error != Error.None)
             {
-                error = errorFrom;
                 return Rate.Default;
             }
 
@@ -150,26 +140,24 @@ public class Agency : AggregateRoot
             return inverted;
         }
 
-        var left = FindRate(r => r.CurrencyTo == to && dateTimeFilter(r));
-        var right = FindRate(r => r.CurrencyTo == from && dateTimeFilter(r));
+        var left = FindRate(r => r.CurrencyTo == from && dateTimeFilter(r));
+        var right = FindRate(r => r.CurrencyTo == to && dateTimeFilter(r));
 
         if (left == null || right == null)
         {
-            error = new Error(StatusCode.NotFound, ErrorMessage);
+            error = Error.NotFound;
             return Rate.Default;
         }
 
-        var multiply = left.Multiply(right, out errorFrom);
-        if (errorFrom != Error.None)
+        var multiply = left.Multiply(right, out error);
+        if (error != Error.None)
         {
-            error = errorFrom;
             return Rate.Default;
         }
 
-        var result = multiply.Invert(out errorFrom);
-        if (errorFrom != Error.None)
+        var result = multiply.Invert(out error);
+        if (error != Error.None)
         {
-            error = errorFrom;
             return Rate.Default;
         }
         error = Error.None;

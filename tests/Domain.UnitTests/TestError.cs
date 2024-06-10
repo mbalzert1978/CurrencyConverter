@@ -5,7 +5,7 @@ using Domain;
 public class ErrorTests
 {
     [Fact]
-    public void Error_WithEmptyCodeAndNonEmptyDescription_IsCreatedCorrectly()
+    public void ErrorWithEmptyCodeAndNonEmptyDescriptionIsCreatedCorrectly()
     {
         // Arrange
         string code = string.Empty;
@@ -20,7 +20,7 @@ public class ErrorTests
     }
 
     [Fact]
-    public void Error_WithEmptyCodeAndNullDescription_IsCreatedCorrectly()
+    public void ErrorWithEmptyCodeAndNullDescriptionIsCreatedCorrectly()
     {
         // Arrange
         string code = string.Empty;
@@ -35,7 +35,7 @@ public class ErrorTests
     }
 
     [Fact]
-    public void Error_WithNonEmptyCodeAndNonEmptyDescription_IsCreatedCorrectly()
+    public void ErrorWithNonEmptyCodeAndNonEmptyDescriptionIsCreatedCorrectly()
     {
         // Arrange
         string code = "Test Code";
@@ -50,7 +50,7 @@ public class ErrorTests
     }
 
     [Fact]
-    public void Error_WithNonEmptyCodeAndNullDescription_IsCreatedCorrectly()
+    public void ErrorWithNonEmptyCodeAndNullDescriptionIsCreatedCorrectly()
     {
         // Arrange
         string code = "Test Code";
@@ -65,7 +65,7 @@ public class ErrorTests
     }
 
     [Fact]
-    public void Error_WithNone_HasEmptyCodeAndDescription()
+    public void ErrorWithNoneHasEmptyCodeAndDescription()
     {
         // Arrange
         string expectedCode = string.Empty;

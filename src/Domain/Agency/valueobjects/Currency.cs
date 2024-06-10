@@ -16,10 +16,10 @@ public class Currency : ValueObject
     {
         (currency, error) = code switch
         {
-            null => (Default, new Error(StatusCode.BadRequest, EmptyMessage)),
-            { } when string.IsNullOrWhiteSpace(code) => (Default, new Error(StatusCode.BadRequest, EmptyMessage)),
-            { } when code.Length != 3 => (Default, new Error(StatusCode.BadRequest, InvalidLengthMessage)),
-            { } when code.Any(c => !char.IsLetter(c)) => (Default, new Error(StatusCode.BadRequest, InvalidCharactersMessage)),
+            null => (Default, Error.BadRequest(EmptyMessage)),
+            { } when string.IsNullOrWhiteSpace(code) => (Default, Error.BadRequest(EmptyMessage)),
+            { } when code.Length != 3 => (Default, Error.BadRequest(InvalidLengthMessage)),
+            { } when code.Any(c => !char.IsLetter(c)) => (Default, Error.BadRequest(InvalidCharactersMessage)),
             _ => (new Currency(code.ToUpperInvariant()), Error.None)
         };
     }

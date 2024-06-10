@@ -2,11 +2,13 @@ namespace Domain;
 
 public sealed record Error(string Code, string? Description = null)
 {
-
+    internal const string UnreachableMessage = "Unreachable should not happen.";
+    internal const string NotFoundMessage = "Rate not found.";
     public static readonly Error None = new(string.Empty, string.Empty);
 
-    public static readonly Exception UnreachableException =
-        new("Unreachable should not happen.", new InvalidOperationException("500"));
+    public static readonly Error Unreachable = new(StatusCode.InternalServerError, UnreachableMessage);
+    public static readonly Error NotFound = new(StatusCode.NotFound, NotFoundMessage);
+    public static Error BadRequest(string message) => new(StatusCode.BadRequest, message);
 }
 
 public static class StatusCode
