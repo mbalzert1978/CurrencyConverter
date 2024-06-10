@@ -6,6 +6,10 @@ bin/
 obj/
 logs/
 
+# coverage
+coverage-report/
+coverage*.xml
+
 ### VisualStudioCode ###
 .vscode
 !.vscode/settings.json
