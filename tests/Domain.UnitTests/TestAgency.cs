@@ -95,6 +95,7 @@ public class AgencyTests
         ["EUR", "JPY", DateTime.Parse("2023-10-02T00:00:00"), 64, false, string.Empty, string.Empty],
         ["EUR", "JPY", null, 44.44444444, false, string.Empty, string.Empty],
         ["USD", "GBP", DateTime.Parse("2023-10-01T00:00:00"), 1.00, true, StatusCode.NotFound, Error.NotFoundMessage],
+        [null, "GBP", DateTime.Parse("2023-10-01T00:00:00"), 1.00, true, StatusCode.BadRequest, Currency.EmptyMessage],
         ["USD", "GBP", null, 1.00, true, StatusCode.NotFound, Error.NotFoundMessage],
 
     ];
