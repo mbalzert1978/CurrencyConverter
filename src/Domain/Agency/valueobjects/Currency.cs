@@ -12,8 +12,6 @@ public class Currency : ValueObject
 
     internal Currency(string code) => Code = code;
 
-    internal Currency() => Code = "DEFAULT";
-
     public static void TryFromStr(string code, out Currency currency, out Error error)
     {
         (currency, error) = code switch
