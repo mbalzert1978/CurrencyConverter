@@ -39,7 +39,7 @@ public class MoneyTests
     [Fact]
     public void TryFromDecimalWhenAmountIsNegativeShouldReturnDefaultMoneyAndError()
     {
-        Money.TryFromDecimal(-12.34m, out var money, out var error);
+        var money = Money.TryFromDecimal(-12.34m, out var error);
 
         Assert.Equal(Money.Default, money);
         Assert.Equal(StatusCode.BadRequest, error.Code);
@@ -49,7 +49,7 @@ public class MoneyTests
     [Fact]
     public void TryFromDecimalWhenAmountIsValidShouldReturnMoneyAndNoError()
     {
-        Money.TryFromDecimal(12.34m, out var money, out var error);
+        var money = Money.TryFromDecimal(12.34m, out var error);
 
         Assert.Equal(12.34m, money.Amount);
         Assert.Equal(Error.None, error);

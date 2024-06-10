@@ -56,18 +56,15 @@ public class Money : ValueObject
         return new Money(Math.Round(parsed, 8));
     }
 
-    internal static void TryFromDecimal(decimal amount, out Money money, out Error error)
+    internal static Money TryFromDecimal(decimal amount, out Error error)
     {
         if (amount <= 0)
         {
-            money = Default;
             error = Error.BadRequest(NotNegativeMessage);
+            return Default;
         }
-        else
-        {
-            money = new Money(Math.Round(amount, 8));
-            error = Error.None;
-        }
+        error = Error.None;
+        return new Money(Math.Round(amount, 8));
     }
 
     public override IEnumerable<object> GetAtomicValues()
@@ -77,7 +74,7 @@ public class Money : ValueObject
 
     internal Money Multiply(Money amount, out Error error)
     {
-        TryFromDecimal(Math.Round(Amount * amount.Amount, 8), out Money money, out error);
+        var money = TryFromDecimal(Math.Round(Amount * amount.Amount, 8), out error);
         return error == Error.None ? money : Default;
     }
 
@@ -85,7 +82,7 @@ public class Money : ValueObject
     {
         if (Amount != 0)
         {
-            TryFromDecimal(Math.Round(1 / Amount, 8), out Money money, out error);
+            var money = TryFromDecimal(Math.Round(1 / Amount, 8), out error);
             return error == Error.None ? money : Default;
         }
 
